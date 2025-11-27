@@ -36,11 +36,13 @@ app.use("/api/auth", authRoutes);
 app.use("/api/user", userRoutes);
 app.use(express.static(clientPath));
 
-app.get("/:rest*", (req, res) => {
+app.get("*", (req, res) => {
+  // Don't handle API routes with the catch-all
   if (req.originalUrl.startsWith("/api")) {
     return res.status(404).json({ success: false, message: "API route not found" });
   }
 
+  // Serve the React/Vue app for all other routes
   res.sendFile(path.join(clientPath, "index.html"));
 });
 // Global error handler
