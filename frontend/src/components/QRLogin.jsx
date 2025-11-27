@@ -58,12 +58,19 @@ const QRLogin = () => {
     return () => socket.off("qr-approved");
   }, [qrToken]);
 
+  // Generate the proper QR code URL
+  const getQRCodeValue = () => {
+    // Use the frontend URL with the qrToken as parameter
+    const frontendUrl = window.location.origin;
+    return `${frontendUrl}/qr-approve?token=${qrToken}`;
+  };
+
   return (
     <div>
       {!qrToken && <button onClick={generateQr}>Generate QR</button>}
       {qrToken && (
         <div>
-          <QRCodeCanvas value={`${backendUrl.replace("/api/auth", "")}/qr-approve?token=${qrToken}`} size={180} />
+          <QRCodeCanvas value={getQRCodeValue()} size={180} />
           <p>Expires in {qrTimeLeft} s</p>
           <button onClick={generateQr}>Refresh QR</button>
         </div>
