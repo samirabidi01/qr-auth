@@ -8,8 +8,9 @@ import authRoutes from "./routes/auth.js";
 import userRoutes from "./routes/user.js";
 import { initSocket } from "./config/socket.js";
 import { connectDB } from "./config/db.js";
+import path from "path";
 import { fileURLToPath } from "url";
-import { dirname, join } from "path";
+
 
 dotenv.config();
 
@@ -17,7 +18,8 @@ const app = express();
 const server = http.createServer(app);
 connectDB();
 const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
+const __dirname = path.dirname(__filename);
+const clientPath = path.join(__dirname, "../frontend/dist");
 
 // Socket.io
 export const io = new Server(server, {
@@ -32,9 +34,10 @@ app.use(cors({ origin: process.env.FRONTEND_URL || "http://localhost:5173", cred
 // Routes
 app.use("/api/auth", authRoutes);
 app.use("/api/user", userRoutes);
-app.use(express.static(join(__dirname, "../frontend/dist")));
-app.get(/.*/, (req, res) => {
-  res.sendFile(join(__dirname, "../frontend/dist", "index.html"));
+app.use(express.static(clientPath));
+
+app.get("*", (req, res) => {
+  res.sendFile(path.join(clientPath, "index.html"));
 });
 // Global error handler
 app.use((err, req, res, next) => {
