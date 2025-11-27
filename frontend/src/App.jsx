@@ -13,6 +13,8 @@ const App = () => {
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/qr-login" element={<QRLogin />} />
         <Route path="/qr-approve" element={<QRApprove />} />
+        <Route path="/*" element={<Navigate to="/" replace />} />
+
       </Routes>
     </Router>
   );
