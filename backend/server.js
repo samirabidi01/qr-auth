@@ -36,8 +36,11 @@ app.use("/api/auth", authRoutes);
 app.use("/api/user", userRoutes);
 app.use(express.static(clientPath));
 
-app.get("/*", (req, res) => {
-  console.log("Fallback:", req.originalUrl);
+app.get("/:rest*", (req, res) => {
+  if (req.originalUrl.startsWith("/api")) {
+    return res.status(404).json({ success: false, message: "API route not found" });
+  }
+
   res.sendFile(path.join(clientPath, "index.html"));
 });
 // Global error handler
