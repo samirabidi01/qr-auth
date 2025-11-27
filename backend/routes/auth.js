@@ -13,4 +13,12 @@ router.post("/qr/approve", protect, approveQR);
 // Verify QR token (desktop receives JWT)
 router.post("/qr/verify", verifyQR);
 
+router.get("/qr/open", (req, res) => {
+  const token = req.query.token;
+
+  // Redirect mobile to React page
+  res.redirect(`${process.env.FRONTEND_URL}/qr-approve?token=${token}`);
+});
+
+
 export default router;
