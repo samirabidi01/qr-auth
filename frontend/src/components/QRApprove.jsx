@@ -9,6 +9,7 @@ const QRApprove = () => {
   const [searchParams] = useSearchParams();
   const qrToken = searchParams.get("token");
   const mobileJWT = localStorage.getItem("token"); // mobile user token
+console.log("MOBILE TOKEN =", mobileJWT);
 
   useEffect(() => {
     if (!qrToken) return;

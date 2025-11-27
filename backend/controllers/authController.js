@@ -20,24 +20,69 @@ export const generateQR = async (req, res) => {
 
 // Approve QR token (mobile)
 export const approveQR = async (req, res) => {
-  const { qrToken } = req.body;
-  const mobileUser = req.user;
+  console.log("======== 📌 approveQR() CALLED ========");
 
   try {
-    const session = await redis.hgetall(`qr:${qrToken}`);
-    if (!session || Date.now() > parseInt(session.expireAt)) {
-      return res.json({ success: false, message: "Invalid or expired QR token" });
+    const { qrToken } = req.body;
+
+    console.log("👉 Received qrToken:", qrToken);
+
+    if (!qrToken) {
+      console.error("❌ No qrToken received");
+      return res.status(400).json({ success: false, message: "qrToken missing" });
     }
 
-    await redis.hmset(`qr:${qrToken}`, { confirmed: 1, userId: mobileUser.id });
+    const session = qrSessions.get(qrToken);
 
-    // Emit event to desktop
-    io.to(qrToken).emit("qr-approved", { userId: mobileUser.id });
+    console.log("👉 Session from qrSessions:", session);
 
-    res.json({ success: true, message: "QR approved" });
+    // Session not found
+    if (!session) {
+      console.error("❌ Session not found for qrToken");
+      return res.json({ success: false, message: "invalid or expired qr token" });
+    }
+
+    // Session expired
+    if (session.expireAt < Date.now()) {
+      console.error("❌ Session expired at:", session.expireAt, " Current:", Date.now());
+      qrSessions.delete(qrToken);
+      return res.json({ success: false, message: "qr expired" });
+    }
+
+    // Session already confirmed
+    if (session.confirmed) {
+      console.warn("⚠️ Session already confirmed!");
+      return res.json({ success: false, message: "qr already confirmed" });
+    }
+
+    // Mark QR as confirmed
+    session.confirmed = true;
+    qrSessions.set(qrToken, session);
+
+    console.log("✅ QR session updated:", session);
+
+    // Generate JWT token
+    const token = jwt.sign(
+      { id: session.userId },
+      process.env.JWT_SECRET,
+      { expiresIn: "7d" }
+    );
+
+    console.log("🔑 JWT token generated for user:", session.userId);
+
+    return res.json({
+      success: true,
+      message: "QR approved successfully",
+      token,
+    });
+
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ success: false });
+    console.error("🔥 SERVER ERROR in approveQR():", err);
+    return res.status(500).json({
+      success: false,
+      message: "server error",
+      error: err.message,
+    });
   }
 };
 
