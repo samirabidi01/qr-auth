@@ -8,6 +8,7 @@ import authRoutes from "./routes/auth.js";
 import userRoutes from "./routes/user.js";
 import { initSocket } from "./config/socket.js";
 import { connectDB } from "./config/db.js";
+import path from "path";
 
 dotenv.config();
 
@@ -20,7 +21,8 @@ export const io = new Server(server, {
   cors: { origin: process.env.FRONTEND_URL || "*", credentials: true },
 });
 initSocket(io);
-
+const __dirname = path.resolve();
+app.use(express.static(path.join(__dirname, "frontend/build")));
 app.use(express.json());
 app.use(cookieParser());
 app.use(cors({ origin: process.env.FRONTEND_URL || "http://localhost:5173", credentials: true }));
@@ -29,6 +31,9 @@ app.use(cors({ origin: process.env.FRONTEND_URL || "http://localhost:5173", cred
 app.use("/api/auth", authRoutes);
 app.use("/api/user", userRoutes);
 
+app.get("*", (req, res) => {
+  res.sendFile(path.join(__dirname, "frontend/build", "index.html"));
+});
 // Global error handler
 app.use((err, req, res, next) => {
   console.error(err.stack);
