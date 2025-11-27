@@ -32,9 +32,9 @@ app.use(cors({ origin: process.env.FRONTEND_URL || "http://localhost:5173", cred
 // Routes
 app.use("/api/auth", authRoutes);
 app.use("/api/user", userRoutes);
-app.use(express.static(join(__dirname, "frontend/dist")));
+app.use(express.static(join(__dirname, "../frontend/dist")));
 app.get(/.*/, (req, res) => {
-  res.sendFile(join(__dirname, "frontend/dist", "index.html"));
+  res.sendFile(join(__dirname, "../frontend/dist", "index.html"));
 });
 // Global error handler
 app.use((err, req, res, next) => {
