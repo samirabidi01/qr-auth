@@ -32,7 +32,7 @@ app.use(cors({ origin: process.env.FRONTEND_URL || "http://localhost:5173", cred
 // Routes
 app.use("/api/auth", authRoutes);
 app.use("/api/user", userRoutes);
-app.use(express.static(path.join(__dirname, "frontend/build")));
+app.use(express.static(join(__dirname, "frontend/build")));
 app.get(/.*/, (req, res) => {
   res.sendFile(join(__dirname, "frontend/build", "index.html"));
 });
