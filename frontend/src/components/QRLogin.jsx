@@ -8,24 +8,23 @@ import { toast } from "react-toastify";
 const QRLogin = () => {
   const { backendUrl, setIsLoggedin, getUserData } = useContext(AppContext);
   const [qrToken, setQrToken] = useState("");
-  const [expiresIn, setExpiresIn] = useState(0);
   const [qrTimeLeft, setQrTimeLeft] = useState(0);
 
+  // Generate QR
   const generateQr = async () => {
     try {
       const { data } = await axios.post(`${backendUrl}/api/auth/qr/generate`);
       if (data.success) {
         setQrToken(data.qrToken);
-        setExpiresIn(data.expiresIn);
         setQrTimeLeft(data.expiresIn);
         socket.emit("subscribe", data.qrToken);
       }
-    } catch (err) {
+    } catch {
       toast.error("Failed to generate QR");
     }
   };
 
-  // QR Timer
+  // QR countdown
   useEffect(() => {
     if (!qrToken) return;
     const timer = setInterval(() => {
@@ -41,6 +40,7 @@ const QRLogin = () => {
     return () => clearInterval(timer);
   }, [qrToken]);
 
+  // Listen for QR approval (desktop)
   useEffect(() => {
     socket.on("qr-approved", async () => {
       try {
@@ -50,7 +50,7 @@ const QRLogin = () => {
           setIsLoggedin(true);
           toast.success("Logged in successfully!");
         }
-      } catch (err) {
+      } catch {
         toast.error("QR verification failed");
       }
     });
@@ -63,7 +63,7 @@ const QRLogin = () => {
       {!qrToken && <button onClick={generateQr}>Generate QR</button>}
       {qrToken && (
         <div>
-          <QRCodeCanvas value={`${backendUrl}/api/auth/qr/open?token=${qrToken}`} size={180} />
+          <QRCodeCanvas value={qrToken} size={180} />
           <p>Expires in {qrTimeLeft} s</p>
           <button onClick={generateQr}>Refresh QR</button>
         </div>
