@@ -63,7 +63,7 @@ const QRLogin = () => {
       {!qrToken && <button onClick={generateQr}>Generate QR</button>}
       {qrToken && (
         <div>
-          <QRCodeCanvas value={`${backendUrl}/qr/open?token=${qrToken}`} size={180} />
+          <QRCodeCanvas value={`${backendUrl}/api/qr/open?token=${qrToken}`} size={180} />
           <p>Expires in {qrTimeLeft} s</p>
           <button onClick={generateQr}>Refresh QR</button>
         </div>
