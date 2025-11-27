@@ -8,18 +8,12 @@ import authRoutes from "./routes/auth.js";
 import userRoutes from "./routes/user.js";
 import { initSocket } from "./config/socket.js";
 import { connectDB } from "./config/db.js";
-import path from "path";
-import { fileURLToPath } from "url";
-
 
 dotenv.config();
 
 const app = express();
 const server = http.createServer(app);
 connectDB();
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-const clientPath = path.join(__dirname, "../frontend/dist");
 
 // Socket.io
 export const io = new Server(server, {
@@ -34,17 +28,7 @@ app.use(cors({ origin: process.env.FRONTEND_URL || "http://localhost:5173", cred
 // Routes
 app.use("/api/auth", authRoutes);
 app.use("/api/user", userRoutes);
-app.use(express.static(clientPath));
 
-app.get("*", (req, res) => {
-  // Don't handle API routes with the catch-all
-  if (req.originalUrl.startsWith("/api")) {
-    return res.status(404).json({ success: false, message: "API route not found" });
-  }
-
-  // Serve the React/Vue app for all other routes
-  res.sendFile(path.join(clientPath, "index.html"));
-});
 // Global error handler
 app.use((err, req, res, next) => {
   console.error(err.stack);
