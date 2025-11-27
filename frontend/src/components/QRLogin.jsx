@@ -31,6 +31,7 @@ const QRLogin = () => {
       setQrTimeLeft((prev) => {
         if (prev <= 1) {
           clearInterval(timer);
+          setQrToken(""); // Reset QR token
           toast.error("QR expired. Refresh.");
           return 0;
         }
@@ -49,6 +50,7 @@ const QRLogin = () => {
           await getUserData();
           setIsLoggedin(true);
           toast.success("Logged in successfully!");
+          setQrToken(""); // Clear QR after success
         }
       } catch {
         toast.error("QR verification failed");
@@ -58,21 +60,53 @@ const QRLogin = () => {
     return () => socket.off("qr-approved");
   }, [qrToken]);
 
-  // Generate the proper QR code URL
+  // Get the current frontend URL for QR code
   const getQRCodeValue = () => {
-    // Use the frontend URL with the qrToken as parameter
+    // Use the current origin (frontend URL)
     const frontendUrl = window.location.origin;
+    console.log("QR Code URL:", `${frontendUrl}/qr-approve?token=${qrToken}`);
     return `${frontendUrl}/qr-approve?token=${qrToken}`;
   };
 
   return (
-    <div>
-      {!qrToken && <button onClick={generateQr}>Generate QR</button>}
-      {qrToken && (
+    <div style={{ textAlign: 'center', padding: '20px' }}>
+      <h2>QR Code Login</h2>
+      {!qrToken ? (
+        <button 
+          onClick={generateQr}
+          style={{
+            padding: '10px 20px',
+            fontSize: '16px',
+            backgroundColor: '#007bff',
+            color: 'white',
+            border: 'none',
+            borderRadius: '5px',
+            cursor: 'pointer'
+          }}
+        >
+          Generate QR Code
+        </button>
+      ) : (
         <div>
-          <QRCodeCanvas value={getQRCodeValue()} size={180} />
-          <p>Expires in {qrTimeLeft} s</p>
-          <button onClick={generateQr}>Refresh QR</button>
+          <p>Scan this QR code with your mobile app:</p>
+          <div style={{ margin: '20px 0' }}>
+            <QRCodeCanvas value={getQRCodeValue()} size={200} />
+          </div>
+          <p>Expires in: {qrTimeLeft} seconds</p>
+          <button 
+            onClick={generateQr}
+            style={{
+              padding: '8px 16px',
+              fontSize: '14px',
+              backgroundColor: '#6c757d',
+              color: 'white',
+              border: 'none',
+              borderRadius: '5px',
+              cursor: 'pointer'
+            }}
+          >
+            Refresh QR Code
+          </button>
         </div>
       )}
     </div>
