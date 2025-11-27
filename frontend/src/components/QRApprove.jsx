@@ -1,37 +1,34 @@
-import React from "react";
-import axios from "../services/api";
+import React, { useContext, useEffect } from "react";
 import { AppContext } from "../context/AppContext";
 import { useSearchParams } from "react-router-dom";
-import { useContext } from "react";
+import axios from "../services/api";
 import { toast } from "react-toastify";
 
 const QRApprove = () => {
   const { backendUrl } = useContext(AppContext);
   const [searchParams] = useSearchParams();
   const qrToken = searchParams.get("token");
-  const mobileJWT = localStorage.getItem("token"); // or from context
+  const mobileJWT = localStorage.getItem("token"); // mobile user token
 
-  const approve = async () => {
-    try {
-      const { data } = await axios.post(
-        `${backendUrl}/api/auth/qr/approve`,
-        { qrToken },
-        { headers: { Authorization: `Bearer ${mobileJWT}` } }
-      );
+  useEffect(() => {
+    if (!qrToken) return;
+    const approve = async () => {
+      try {
+        const { data } = await axios.post(
+          `${backendUrl}/api/auth/qr/approve`,
+          { qrToken },
+          { headers: { Authorization: `Bearer ${mobileJWT}` } }
+        );
+        if (data.success) toast.success("QR approved. Desktop will login!");
+        else toast.error(data.message);
+      } catch (err) {
+        toast.error("Error approving QR");
+      }
+    };
+    approve();
+  }, [qrToken]);
 
-      if (data.success) toast.success("QR approved. Desktop will login now!");
-      else toast.error(data.message);
-    } catch {
-      toast.error("Error approving QR");
-    }
-  };
-
-  return (
-    <div>
-      <p>Approve login on desktop?</p>
-      <button onClick={approve}>Approve</button>
-    </div>
-  );
+  return <div>Approving QR... Please wait.</div>;
 };
 
 export default QRApprove;
