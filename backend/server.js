@@ -37,6 +37,7 @@ app.use("/api/user", userRoutes);
 app.use(express.static(clientPath));
 
 app.get("/*", (req, res) => {
+  console.log("Fallback:", req.originalUrl);
   res.sendFile(path.join(clientPath, "index.html"));
 });
 // Global error handler
