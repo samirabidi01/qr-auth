@@ -1,8 +1,7 @@
 import redis from "../config/redis.js";
 import jwt from "jsonwebtoken";
-import { io } from "../server.js"; // We need 'io' to emit socket events
-import User from "../models/User.js"; // Your existing User model
-import bcrypt from "bcryptjs";
+import { io } from "../server.js"; 
+import User from "../models/User.js"; 
 
 // Generate QR token
 export const generateQR = async (req, res) => {
