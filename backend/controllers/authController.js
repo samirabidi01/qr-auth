@@ -95,3 +95,55 @@ export const verifyQR = async (req, res) => {
     res.status(500).json({ success: false, message: "Server error in verifyQR" });
   }
 };
+ // register
+ export const register =async(res,res)=>{
+    try {
+    const { name, email, password } = req.body;
+
+    // Check if user exists
+    const existingUser = await User.findOne({ email });
+    if (existingUser) {
+      return res.status(400).json({ success: false, message: "User already exists" });
+    }
+
+    // Create new user
+    const user = await User.create({ name, email, password });
+
+    // Generate JWT
+    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: "7d" });
+
+    res.status(201).json({ success: true, message: "User registered successfully", token });
+  } catch (err) {
+    console.error("🔥 REGISTER ERROR:", err);
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+}
+ export const login =async(req,res)=>{
+   try {
+    const { email, password } = req.body;
+
+    // Check if user exists
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(400).json({ success: false, message: "Invalid email or password" });
+    }
+
+    // Check password
+    const isMatch = await user.matchPassword(password);
+    if (!isMatch) {
+      return res.status(400).json({ success: false, message: "Invalid email or password" });
+    }
+
+    // Generate JWT
+    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: "7d" });
+
+    // Optionally send token as HttpOnly cookie
+    res.cookie("token", token, { httpOnly: true, secure: process.env.NODE_ENV === "production", sameSite: "strict" });
+
+    res.json({ success: true, message: "Login successful", token });
+  } catch (err) {
+    console.error("🔥 LOGIN ERROR:", err);
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+}
+ 

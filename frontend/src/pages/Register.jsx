@@ -3,8 +3,9 @@ import axios from "../services/api";
 import { AppContext } from "../context/AppContext";
 import { toast } from "react-toastify";
 
-const Login = () => {
-  const { backendUrl, setIsLoggedin, getUserData } = useContext(AppContext);
+const Register = () => {
+  const { backendUrl } = useContext(AppContext);
+  const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -13,16 +14,17 @@ const Login = () => {
     e.preventDefault();
     setLoading(true);
     try {
-      const res = await axios.post(`${backendUrl}/api/auth/login`, { email, password });
+      const res = await axios.post(`${backendUrl}/api/auth/register`, { name, email, password });
       if (res.data.success) {
-        toast.success(res.data.message);
-        setIsLoggedin(true);
-        getUserData();
+        toast.success(res.data.message || "Registered successfully");
+        setName("");
+        setEmail("");
+        setPassword("");
       } else {
         toast.error(res.data.message);
       }
     } catch (err) {
-      toast.error(err.response?.data?.message || "Login failed");
+      toast.error(err.response?.data?.message || "Registration failed");
     }
     setLoading(false);
   };
@@ -33,7 +35,15 @@ const Login = () => {
         onSubmit={handleSubmit}
         className="bg-white p-8 rounded shadow-md w-full max-w-sm"
       >
-        <h2 className="text-2xl font-bold mb-6 text-center">Login</h2>
+        <h2 className="text-2xl font-bold mb-6 text-center">Register</h2>
+        <input
+          type="text"
+          placeholder="Name"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          className="w-full p-3 border rounded mb-4"
+          required
+        />
         <input
           type="email"
           placeholder="Email"
@@ -52,14 +62,14 @@ const Login = () => {
         />
         <button
           type="submit"
-          className="w-full bg-blue-500 text-white p-3 rounded hover:bg-blue-600"
+          className="w-full bg-green-500 text-white p-3 rounded hover:bg-green-600"
           disabled={loading}
         >
-          {loading ? "Logging in..." : "Login"}
+          {loading ? "Registering..." : "Register"}
         </button>
       </form>
     </div>
   );
 };
 
-export default Login;
+export default Register;
