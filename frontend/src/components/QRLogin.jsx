@@ -63,7 +63,7 @@ const QRLogin = () => {
   // Get the current frontend URL for QR code
   const getQRCodeValue = () => {
     // Use the current origin (frontend URL)
-    const frontendUrl = window.location.origin;
+    const frontendUrl ="https://front-c2si.onrender.com"
     console.log("QR Code URL:", `${frontendUrl}/qr-approve?token=${qrToken}`);
     return `${frontendUrl}/qr-approve?token=${qrToken}`;
   };
