@@ -1,6 +1,8 @@
 import redis from "../config/redis.js";
 import jwt from "jsonwebtoken";
 import { io } from "../server.js"; // We need 'io' to emit socket events
+import User from "../models/User.js"; // Your existing User model
+import bcrypt from "bcryptjs";
 
 // Generate QR token
 export const generateQR = async (req, res) => {
@@ -96,7 +98,7 @@ export const verifyQR = async (req, res) => {
   }
 };
  // register
- export const register =async(res,res)=>{
+ export const register =async(req,res)=>{
     try {
     const { name, email, password } = req.body;
 
