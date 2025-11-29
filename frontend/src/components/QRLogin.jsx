@@ -63,8 +63,9 @@ const QRLogin = () => {
   // Get the current frontend URL for QR code
   const getQRCodeValue = () => {
     // Use the current origin (frontend URL)
-    console.log("QR Code URL:", `${ backendUrl}/qr-approve?token=${qrToken}`);
-    return `${ backendUrl}/qr-approve?token=${qrToken}`;
+    const frontendUrl = window.location.origin;
+    console.log("QR Code URL:", `${frontendUrl}/qr-approve?token=${qrToken}`);
+    return `${frontendUrl}/qr-approve?token=${qrToken}`;
   };
 
   return (
