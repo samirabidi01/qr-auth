@@ -1,6 +1,6 @@
 import redis from "../config/redis.js";
 import jwt from "jsonwebtoken";
-import { io } from "../server.js";
+import { io } from "../server.js"; // We need 'io' to emit socket events
 
 // Generate QR token
 export const generateQR = async (req, res) => {
@@ -8,104 +8,90 @@ export const generateQR = async (req, res) => {
     const qrToken = Math.random().toString(36).substring(2, 15);
     const expireAt = Date.now() + 60_000; // 1 min expiry
 
-    await redis.hmset(`qr:${qrToken}`, { confirmed: 0, expireAt });
+    // Store QR data in Redis
+    await redis.hmset(`qr:${qrToken}`, { confirmed: 0, expireAt, userId: "pending" });
     await redis.expire(`qr:${qrToken}`, 60);
 
     res.json({ success: true, qrToken, expiresIn: 60 });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ success: false });
+    res.status(500).json({ success: false, message: "Server error in generateQR" });
   }
 };
 
-// Approve QR token (mobile)
+// Approve QR token (mobile) - THIS IS THE CORRECTED FUNCTION
 export const approveQR = async (req, res) => {
   console.log("======== 📌 approveQR() CALLED ========");
-
   try {
     const { qrToken } = req.body;
+    // req.user is added by your 'protect' middleware
+    const userId = req.user.id; 
 
-    console.log("👉 Received qrToken:", qrToken);
-
-    if (!qrToken) {
-      console.error("❌ No qrToken received");
-      return res.status(400).json({ success: false, message: "qrToken missing" });
+    if (!qrToken || !userId) {
+      return res.status(400).json({ success: false, message: "qrToken or user ID missing" });
     }
 
-    const session = qrSessions.get(qrToken);
+    // Get session from Redis
+    const session = await redis.hgetall(`qr:${qrToken}`);
 
-    console.log("👉 Session from qrSessions:", session);
-
-    // Session not found
-    if (!session) {
-      console.error("❌ Session not found for qrToken");
-      return res.json({ success: false, message: "invalid or expired qr token" });
-    }
-
-    // Session expired
-    if (session.expireAt < Date.now()) {
-      console.error("❌ Session expired at:", session.expireAt, " Current:", Date.now());
-      qrSessions.delete(qrToken);
-      return res.json({ success: false, message: "qr expired" });
+    // Session not found in Redis
+    if (!Object.keys(session).length) {
+      return res.json({ success: false, message: "Invalid or expired QR token" });
     }
 
     // Session already confirmed
-    if (session.confirmed) {
-      console.warn("⚠️ Session already confirmed!");
-      return res.json({ success: false, message: "qr already confirmed" });
+    if (session.confirmed === "1") {
+      return res.json({ success: false, message: "QR already confirmed" });
     }
 
-    // Mark QR as confirmed
-    session.confirmed = true;
-    qrSessions.set(qrToken, session);
+    // Mark QR as confirmed and store the user ID in Redis
+    await redis.hmset(`qr:${qrToken}`, { confirmed: 1, userId: userId });
 
-    console.log("✅ QR session updated:", session);
+    // ✅ BUG FIX #2: Notify the desktop client via Socket.IO
+    // The desktop is in a room named after the qrToken.
+    io.to(qrToken).emit("qr-approved");
+    console.log(`✅ QR approved. Emitted 'qr-approved' to room ${qrToken}`);
 
-    // Generate JWT token
-    const token = jwt.sign(
-      { id: session.userId },
-      process.env.JWT_SECRET,
-      { expiresIn: "7d" }
-    );
-
-    console.log("🔑 JWT token generated for user:", session.userId);
-
+    // The mobile client doesn't need a new token, just confirmation.
     return res.json({
       success: true,
-      message: "QR approved successfully",
-      token,
+      message: "QR approved successfully. Desktop will now log in.",
     });
 
   } catch (err) {
     console.error("🔥 SERVER ERROR in approveQR():", err);
     return res.status(500).json({
       success: false,
-      message: "server error",
+      message: "Server error",
       error: err.message,
     });
   }
 };
 
+
 // Verify QR token (desktop)
 export const verifyQR = async (req, res) => {
   const { qrToken } = req.body;
-
   try {
     const session = await redis.hgetall(`qr:${qrToken}`);
-    if (!session || session.confirmed != "1") {
-      return res.json({ success: false, message: "Not authorized" });
+
+    // Check if session is valid and confirmed
+    if (!session || session.confirmed !== "1" || session.userId === "pending") {
+      return res.json({ success: false, message: "Not authorized or QR not approved" });
     }
 
-    // Generate JWT for desktop
+    // Generate JWT for desktop using the userId from Redis
     const token = jwt.sign({ id: session.userId }, process.env.JWT_SECRET, { expiresIn: "7d" });
 
-    // Delete QR session
+    // Delete the QR session from Redis after use
     await redis.del(`qr:${qrToken}`);
 
-    res.cookie("token", token, { httpOnly: true });
-    res.json({ success: true });
+    // Send JWT to desktop in an HttpOnly cookie
+    res.cookie("token", token, { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'strict' });
+    res.json({ success: true, message: "Login successful" });
+
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ success: false });
+    console.error("🔥 SERVER ERROR in verifyQR():", err);
+    res.status(500).json({ success: false, message: "Server error in verifyQR" });
   }
 };
