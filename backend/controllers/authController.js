@@ -1,7 +1,7 @@
 import redis from "../config/redis.js";
 import jwt from "jsonwebtoken";
 import { io } from "../server.js"; 
-import User from "../models/User.js"; 
+import User from "../models/user.js"; 
 
 // Generate QR token
 export const generateQR = async (req, res) => {
