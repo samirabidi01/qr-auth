@@ -8,8 +8,8 @@ import authRoutes from "./routes/auth.js";
 import userRoutes from "./routes/user.js";
 import { initSocket } from "./config/socket.js";
 import { connectDB } from "./config/db.js";
-import path from "path"; // 👈 Add this import
-import { fileURLToPath } from "url"; // 👈 Add this import
+import path from "path"; 
+import { fileURLToPath } from "url"; 
 
 dotenv.config();
 const __filename = fileURLToPath(import.meta.url);
