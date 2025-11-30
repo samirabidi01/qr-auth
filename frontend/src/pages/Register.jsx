@@ -15,6 +15,8 @@ const Register = () => {
     setLoading(true);
     try {
       const res = await axios.post(`${backendUrl}/api/auth/register`, { name, email, password });
+      console.log(res);
+      
       if (res.data.success) {
         toast.success(res.data.message || "Registered successfully");
         setName("");
