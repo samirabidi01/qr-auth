@@ -2,7 +2,7 @@ import React, { useState, useContext } from "react";
 import axios from "../services/api";
 import { AppContext } from "../context/AppContext";
 import { toast } from "react-toastify";
-
+import { Link } from "react-router-dom";
 const Login = () => {
   const { backendUrl, setIsLoggedin, getUserData } = useContext(AppContext);
   const [email, setEmail] = useState("");
@@ -58,6 +58,9 @@ const Login = () => {
           {loading ? "Logging in..." : "Login"}
         </button>
       </form>
+      <Link to="/register">
+     <p> Don't have an account </p>
+     </Link>
     </div>
   );
 };
