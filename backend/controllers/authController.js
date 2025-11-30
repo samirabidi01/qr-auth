@@ -1,8 +1,7 @@
+import User from "../models/User.js";
 import redis from "../config/redis.js";
 import jwt from "jsonwebtoken";
 import { io } from "../server.js"; 
-import User from "../models/User.js";
-
 
 const generateToken = (id) => {
   return jwt.sign({ id }, process.env.JWT_SECRET, {
