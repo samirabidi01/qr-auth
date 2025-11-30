@@ -1,7 +1,125 @@
 import redis from "../config/redis.js";
 import jwt from "jsonwebtoken";
 import { io } from "../server.js"; 
-import User from "../models/user.js"; 
+import User from "../models/User.js";
+
+
+const generateToken = (id) => {
+  return jwt.sign({ id }, process.env.JWT_SECRET, {
+    expiresIn: "30d",
+  });
+};
+
+// -------------------------
+// REGISTER CONTROLLER
+// -------------------------
+export const register = async (req, res) => {
+  try {
+    const { name, email, password } = req.body;
+
+    // Check missing fields
+    if (!name || !email || !password) {
+      return res.status(400).json({ success: false, message: "All fields required" });
+    }
+
+    // Check if email exists
+    const userExists = await User.findOne({ email });
+    if (userExists) {
+      return res.status(400).json({ success: false, message: "Email already exists" });
+    }
+
+    // Create user
+    const user = await User.create({ name, email, password });
+
+    // Generate JWT
+    const token = generateToken(user._id);
+
+    // Store token in cookie
+    res.cookie("token", token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production", // Only use HTTPS in production
+      sameSite: "strict",
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+    });
+
+    return res.status(201).json({
+      success: true,
+      message: "User registered successfully",
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email
+      },
+    });
+
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+};
+
+// ==========================
+//           LOGIN
+// ==========================
+export const login = async (req, res) => {
+  try {
+    const { email, password } = req.body;
+
+    // Validation
+    if (!email || !password) {
+      return res.status(400).json({ success: false, message: "Email & password required" });
+    }
+
+    // Find user
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(400).json({ success: false, message: "Invalid credentials" });
+    }
+
+    // Compare password
+    const isMatch = await user.matchPassword(password);
+    if (!isMatch) {
+      return res.status(400).json({ success: false, message: "Invalid credentials" });
+    }
+
+    // Create token
+    const token = generateToken(user._id);
+
+    // Set cookie
+    res.cookie("token", token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "strict",
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+    });
+
+    return res.json({
+      success: true,
+      message: "Login successful",
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+      },
+    });
+
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+};
+
+// ==========================
+//           LOGOUT
+// ==========================
+export const logout = (req, res) => {
+  res.cookie("token", "", {
+    httpOnly: true,
+    expires: new Date(0),
+  });
+
+  return res.json({ success: true, message: "Logged out successfully" });
+};
 
 // Generate QR token
 export const generateQR = async (req, res) => {
@@ -97,54 +215,5 @@ export const verifyQR = async (req, res) => {
   }
 };
  // register
- export const register =async(req,res)=>{
-    try {
-    const { name, email, password } = req.body;
-
-    // Check if user exists
-    const existingUser = await User.findOne({ email });
-    if (existingUser) {
-      return res.status(400).json({ success: false, message: "User already exists" });
-    }
-
-    // Create new user
-    const user = await User.create({ name, email, password });
-
-    // Generate JWT
-    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: "7d" });
-
-    res.status(201).json({ success: true, message: "User registered successfully", token });
-  } catch (err) {
-    console.error("🔥 REGISTER ERROR:", err);
-    res.status(500).json({ success: false, message: "Server error" });
-  }
-}
- export const login =async(req,res)=>{
-   try {
-    const { email, password } = req.body;
-
-    // Check if user exists
-    const user = await User.findOne({ email });
-    if (!user) {
-      return res.status(400).json({ success: false, message: "Invalid email or password" });
-    }
-
-    // Check password
-    const isMatch = await user.matchPassword(password);
-    if (!isMatch) {
-      return res.status(400).json({ success: false, message: "Invalid email or password" });
-    }
-
-    // Generate JWT
-    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: "7d" });
-
-    // Optionally send token as HttpOnly cookie
-    res.cookie("token", token, { httpOnly: true, secure: process.env.NODE_ENV === "production", sameSite: "strict" });
-
-    res.json({ success: true, message: "Login successful", token });
-  } catch (err) {
-    console.error("🔥 LOGIN ERROR:", err);
-    res.status(500).json({ success: false, message: "Server error" });
-  }
-}
+ 
  

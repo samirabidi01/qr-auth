@@ -1,8 +1,12 @@
 import express from "express";
-import { generateQR, approveQR, verifyQR,register,login } from "../controllers/authController.js";
+import { generateQR, approveQR, verifyQR,register,login,logout } from "../controllers/authController.js";
 import { protect } from "../middleware/authMidlleware.js";
 
 const router = express.Router();
+router.post("/register", register);
+router.post("/login", login);
+router.post("/logout", logout);
+
 
 // Generate QR token (desktop)
 router.post("/qr/generate", generateQR);
@@ -12,9 +16,7 @@ router.post("/qr/approve", protect, approveQR);
 
 // Verify QR token (desktop receives JWT)
 router.post("/qr/verify", verifyQR);
-router.post("/register", register);
 
-router.post("/login", login);
 
 
 // router.get("/qr/open", (req, res) => {
