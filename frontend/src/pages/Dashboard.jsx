@@ -3,6 +3,8 @@ import { AppContext } from "../context/AppContext";
 
 const Dashboard = () => {
   const { userData } = useContext(AppContext);
+  console.log(userData);
+  
 
   return (
     <div>
