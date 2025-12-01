@@ -101,91 +101,62 @@ export const logout = (req, res) => {
 // ----------------------------
 export const generateQR = async (req, res) => {
   try {
-    const qrToken = Math.random().toString(36).substring(2);
-    const expireAt = Date.now() + 60000;
+    const qrToken = Math.random().toString(36).substring(2, 15);
+    const expireAt = Date.now() + 60_000; // 1 min expiry
 
-    await redis.hSet(`qr:${qrToken}`, {
-      confirmed: "0",
-      expireAt,
-      userId: "pending",
-    });
-
+    await redis.hmset(`qr:${qrToken}`, { confirmed: 0, expireAt });
     await redis.expire(`qr:${qrToken}`, 60);
 
     res.json({ success: true, qrToken, expiresIn: 60 });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ success: false, message: "Server error generating QR" });
+    res.status(500).json({ success: false });
   }
 };
 
-// ----------------------------
-// APPROVE QR (MOBILE)
-// ----------------------------
+// Approve QR token (mobile)
 export const approveQR = async (req, res) => {
+  const { qrToken } = req.body;
+  const mobileUser = req.user;
+
   try {
-    const { qrToken } = req.body;
-    const userId = req.user.id; // From middleware
-
-    if (!qrToken)
-      return res.status(400).json({ success: false, message: "QR token missing" });
-
-    const session = await redis.hGetAll(`qr:${qrToken}`);
-
-    if (!session || Object.keys(session).length === 0)
+    const session = await redis.hgetall(`qr:${qrToken}`);
+    if (!session || Date.now() > parseInt(session.expireAt)) {
       return res.json({ success: false, message: "Invalid or expired QR token" });
+    }
 
-    if (parseInt(session.confirmed) === 1)
-      return res.json({ success: false, message: "QR already approved" });
+    await redis.hmset(`qr:${qrToken}`, { confirmed: 1, userId: mobileUser.id });
 
-    await redis.hSet(`qr:${qrToken}`, {
-      confirmed: "1",
-      userId,
-    });
+    // Emit event to desktop
+    io.to(qrToken).emit("qr-approved", { userId: mobileUser.id });
 
-    io.to(qrToken).emit("qr-approved");
-    console.log(`📢 Emitted "qr-approved" to room: ${qrToken}`);
-
-    res.json({ success: true, message: "QR approved. Desktop will log in." });
-
+    res.json({ success: true, message: "QR approved" });
   } catch (err) {
-    console.error("approveQR ERROR:", err);
-    res.status(500).json({ success: false, message: "Server error approving QR" });
+    console.error(err);
+    res.status(500).json({ success: false });
   }
 };
 
-// ----------------------------
-// DESKTOP VERIFY QR
-// ----------------------------
+// Verify QR token (desktop)
 export const verifyQR = async (req, res) => {
+  const { qrToken } = req.body;
+
   try {
-    const { qrToken } = req.body;
+    const session = await redis.hgetall(`qr:${qrToken}`);
+    if (!session || session.confirmed != "1") {
+      return res.json({ success: false, message: "Not authorized" });
+    }
 
-    const session = await redis.hGetAll(`qr:${qrToken}`);
+    // Generate JWT for desktop
+    const token = jwt.sign({ id: session.userId }, process.env.JWT_SECRET, { expiresIn: "7d" });
 
-    if (!session || Object.keys(session).length === 0)
-      return res.json({ success: false, message: "Invalid or expired QR token" });
-
-    if (session.confirmed !== "1")
-      return res.json({ success: false, message: "QR not yet approved" });
-
-    if (session.userId === "pending")
-      return res.json({ success: false, message: "User not assigned" });
-
-    const token = generateToken(session.userId);
-
+    // Delete QR session
     await redis.del(`qr:${qrToken}`);
 
-    res.cookie("token", token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "strict",
-    });
-
-    res.json({ success: true, message: "QR login successful" });
-
+    res.cookie("token", token, { httpOnly: true });
+    res.json({ success: true });
   } catch (err) {
-    console.error("verifyQR ERROR:", err);
-    res.status(500).json({ success: false, message: "Server error verifying QR" });
+    console.error(err);
+    res.status(500).json({ success: false });
   }
 };
