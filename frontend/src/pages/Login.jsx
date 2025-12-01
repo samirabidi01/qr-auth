@@ -2,12 +2,13 @@ import React, { useState, useContext } from "react";
 import axiossinstance from "../services/api";
 import { AppContext } from "../context/AppContext";
 import { toast } from "react-toastify";
-import { Link } from "react-router-dom";
+import { Link ,useNavigate} from "react-router-dom";
 const Login = () => {
   const { backendUrl, setIsLoggedin, getUserData } = useContext(AppContext);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const navigate=useNavigate()
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -20,6 +21,7 @@ const Login = () => {
         toast.success(res.data.message);
         setIsLoggedin(true);
         getUserData();
+        navigate("/dashboard")
       } else {
         toast.error(res.data.message);
       }
