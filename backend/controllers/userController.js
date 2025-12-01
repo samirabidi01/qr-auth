@@ -1,11 +1,14 @@
-// import User from "../models/user.js";
+import userModel from "../models/userModel.js";
 
 // Get logged-in user profile
 export const getProfile = async (req, res) => {
   try {
-    const user = req.user; // set by authMiddleware
+    const { userId } = req.body;
+
+    const user = await userModel.findById(userId);
+
     if (!user) {
-      return res.status(404).json({ success: false, message: "User not found" });
+      return res.json({ success: false, message: "User Not Found" });
     }
 
     res.json({
