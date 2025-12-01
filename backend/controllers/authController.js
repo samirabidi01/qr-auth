@@ -127,9 +127,9 @@ export const approveQR = async (req, res) => {
   try {
     const session = await redis.hgetall(`qr:${qrToken}`);
 
-    if (!session || !session.expireAt) {
-      return res.json({ success: false, message: "Invalid QR token" });
-    }
+    if (!session || Date.now() > Number(session.expireAt)) {
+  return res.json({ success: false, message: "Invalid or expired QR token" });
+}
 
     if (Date.now() > Number(session.expireAt)) {
       await redis.del(`qr:${qrToken}`);

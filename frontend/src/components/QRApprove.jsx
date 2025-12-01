@@ -9,9 +9,11 @@ const QRApprove = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const [status, setStatus] = useState("processing");
-  
+  const [mobileJWT, setMobileJWT] = useState(null);
   const qrToken = searchParams.get("token");
-  const mobileJWT = localStorage.getItem("token");
+ useEffect(() => {
+  setMobileJWT(localStorage.getItem("token"));
+}, []);
 
   console.log("QR Token from URL:", qrToken);
   console.log("Mobile JWT:", mobileJWT);
@@ -37,10 +39,10 @@ const QRApprove = () => {
           `${backendUrl}/api/auth/qr/approve`,
           { qrToken },
           { 
-            headers: { 
-              Authorization: `Bearer ${mobileJWT}`,
-              'Content-Type': 'application/json'
-            } 
+            headers: {
+  Authorization: `Bearer ${mobileJWT}`,
+  'Content-Type': 'application/json'
+}
           }
         );
         
