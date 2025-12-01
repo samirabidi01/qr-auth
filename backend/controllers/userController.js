@@ -3,9 +3,7 @@ import userModel from "../models/userModel.js";
 // Get logged-in user profile
 export const getProfile = async (req, res) => {
   try {
-    const { userId } = req.body;
-
-    const user = await userModel.findById(userId);
+    const user = req.user; // Already fetched in protect middleware
 
     if (!user) {
       return res.json({ success: false, message: "User Not Found" });
