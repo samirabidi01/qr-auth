@@ -24,6 +24,12 @@ export const io = new Server(server, {
   cors: { origin: process.env.FRONTEND_URL || "*", credentials: true },
 });
 initSocket(io);
+io.on("connection", socket => {
+  socket.on("subscribe", token => {
+    console.log("Desktop subscribed to:", token);
+    socket.join(token);
+  });
+});
 app.use(express.static(path.join(__dirname, "../frontend/dist")));
 
 app.use(express.json());

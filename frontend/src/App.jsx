@@ -14,7 +14,7 @@ const App = () => {
         <Route path="/" element={<Home />} />
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/qr-login" element={<QRLogin />} />
-        <Route path="/qr-approve" element={<QRApprove />} />
+  <Route path="/qr-approve" element={<QRApprove />} />
         <Route path="/register" element={<Register />} />
         <Route path="/login" element={<Login />} />
         {/* Catch all route - redirect to home */}

@@ -7,7 +7,7 @@ import { io } from "../server.js";
 // Generate JWT
 // ----------------------------
 const generateToken = (id) => {
-  return jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: "7d" });
+  return jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: "1d" });
 };
 
 // ----------------------------
@@ -71,6 +71,7 @@ export const login = async (req, res) => {
     res.json({
       success: true,
       message: "Login successful",
+      token,     // ADD THIS
       user: {
         id: user._id,
         name: user.name,
@@ -101,10 +102,14 @@ export const logout = (req, res) => {
 // ----------------------------
 export const generateQR = async (req, res) => {
   try {
-    const qrToken = Math.random().toString(36).substring(2, 15);
-    const expireAt = Date.now() + 60_000; // 1 min expiry
+    const qrToken = crypto.randomUUID();
+    const expireAt = Date.now() + 60000; // 1 minute
 
-    await redis.hmset(`qr:${qrToken}`, { confirmed: 0, expireAt });
+    await redis.hmset(`qr:${qrToken}`, {
+      confirmed: "0",
+      expireAt: expireAt.toString()
+    });
+
     await redis.expire(`qr:${qrToken}`, 60);
 
     res.json({ success: true, qrToken, expiresIn: 60 });
@@ -121,16 +126,26 @@ export const approveQR = async (req, res) => {
 
   try {
     const session = await redis.hgetall(`qr:${qrToken}`);
-    if (!session || Date.now() > parseInt(session.expireAt)) {
-      return res.json({ success: false, message: "Invalid or expired QR token" });
+
+    if (!session || !session.expireAt) {
+      return res.json({ success: false, message: "Invalid QR token" });
     }
 
-    await redis.hmset(`qr:${qrToken}`, { confirmed: 1, userId: mobileUser.id });
+    if (Date.now() > Number(session.expireAt)) {
+      await redis.del(`qr:${qrToken}`);
+      return res.json({ success: false, message: "Expired QR token" });
+    }
 
-    // Emit event to desktop
-    io.to(qrToken).emit("qr-approved", { userId: mobileUser.id });
+    // Mark QR confirmed
+    await redis.hmset(`qr:${qrToken}`, {
+      confirmed: "1",
+      userId: mobileUser.id
+    });
 
-    res.json({ success: true, message: "QR approved" });
+    // Notify desktop
+    io.to(qrToken).emit("qr-approved");
+
+    res.json({ success: true, message: "QR approved successfully" });
   } catch (err) {
     console.error(err);
     res.status(500).json({ success: false });
@@ -143,17 +158,30 @@ export const verifyQR = async (req, res) => {
 
   try {
     const session = await redis.hgetall(`qr:${qrToken}`);
-    if (!session || session.confirmed != "1") {
+
+    if (!session || session.confirmed !== "1") {
       return res.json({ success: false, message: "Not authorized" });
     }
 
-    // Generate JWT for desktop
-    const token = jwt.sign({ id: session.userId }, process.env.JWT_SECRET, { expiresIn: "7d" });
+    if (Date.now() > Number(session.expireAt)) {
+      await redis.del(`qr:${qrToken}`);
+      return res.json({ success: false, message: "QR expired" });
+    }
 
-    // Delete QR session
+    const token = jwt.sign(
+      { id: session.userId },
+      process.env.JWT_SECRET,
+      { expiresIn: "7d" }
+    );
+
     await redis.del(`qr:${qrToken}`);
 
-    res.cookie("token", token, { httpOnly: true });
+    res.cookie("token", token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax"
+    });
+
     res.json({ success: true });
   } catch (err) {
     console.error(err);

@@ -45,13 +45,12 @@ const QRLogin = () => {
   useEffect(() => {
     socket.on("qr-approved", async () => {
       try {
-        const jwtRes = await axios.post(`${backendUrl}/api/auth/qr/verify`, { qrToken });
-        if (jwtRes.data.success) {
-          await getUserData();
-          setIsLoggedin(true);
-          toast.success("Logged in successfully!");
-          setQrToken(""); // Clear QR after success
-        }
+  const { data } = await axios.post(`${backendUrl}/api/auth/qr/verify`, { qrToken });
+       if (data.success) {
+    await getUserData();
+    setIsLoggedin(true);
+    toast.success("Logged in successfully!");
+  }
       } catch {
         toast.error("QR verification failed");
       }
@@ -65,7 +64,7 @@ const QRLogin = () => {
     // Use the current origin (frontend URL)
     const frontendUrl = window.location.origin;
     console.log("QR Code URL:", `${frontendUrl}/qr-approve?token=${qrToken}`);
-    return `${frontendUrl}/qr-approve?token=${qrToken}`;
+  return `${window.location.origin}/qr-approve?token=${qrToken}`;
   };
 
   return (
