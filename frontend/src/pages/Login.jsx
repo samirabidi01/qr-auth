@@ -1,5 +1,5 @@
 import React, { useState, useContext } from "react";
-import axios from "../services/api";
+import axiossinstance from "../services/api";
 import { AppContext } from "../context/AppContext";
 import { toast } from "react-toastify";
 import { Link } from "react-router-dom";
@@ -13,7 +13,7 @@ const Login = () => {
     e.preventDefault();
     setLoading(true);
     try {
-      const res = await axios.post(`${backendUrl}/api/auth/login`, { email, password });
+      const res = await axiossinstance.post(`${backendUrl}/api/auth/login`, { email, password });
       console.log(res);
       
       if (res.data.success) {

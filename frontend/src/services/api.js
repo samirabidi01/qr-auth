@@ -1,7 +1,7 @@
 import axios from "axios";
 
-const instance = axios.create({
-  withCredentials: true, // send cookies
+const axiosinstance = axios.create({
+  withCredentials: true, 
 });
 
-export default instance;
+export default axiosinstance;

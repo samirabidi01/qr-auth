@@ -1,5 +1,5 @@
 import React, { createContext, useState } from "react";
-import axios from "../services/api";
+import axiosinstance from "../services/api";
 
 export const AppContext = createContext();
 
@@ -10,7 +10,7 @@ export const AppContextProvider = ({ children }) => {
 
   const getUserData = async () => {
     try {
-      const res = await axios.get(`${backendUrl}/api/user/me`);
+      const res = await axiosinstance.get(`${backendUrl}/api/user/me`);
       if (res.data.success) {
         setUserData(res.data.user);
         setIsLoggedin(true);

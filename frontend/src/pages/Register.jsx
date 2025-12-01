@@ -1,5 +1,5 @@
 import React, { useState, useContext } from "react";
-import axios from "../services/api";
+import axiosinstance from "../services/api";
 import { AppContext } from "../context/AppContext";
 import { toast } from "react-toastify";
 
@@ -14,7 +14,7 @@ const Register = () => {
     e.preventDefault();
     setLoading(true);
     try {
-      const res = await axios.post(`${backendUrl}/api/auth/register`, { name, email, password });
+      const res = await axiosinstance.post(`${backendUrl}/api/auth/register`, { name, email, password });
       console.log(res);
       
       if (res.data.success) {
