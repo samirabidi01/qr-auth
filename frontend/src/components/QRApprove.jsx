@@ -8,23 +8,31 @@ const QRApprove = () => {
   const { backendUrl } = useContext(AppContext);
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const [status, setStatus] = useState("processing");
-  const [mobileJWT, setMobileJWT] = useState(null);
+
   const qrToken = searchParams.get("token");
- useEffect(() => {
-  setMobileJWT(localStorage.getItem("token"));
-}, []);
 
-  console.log("QR Token from URL:", qrToken);
-  console.log("Mobile JWT:", mobileJWT);
+  const [mobileJWT, setMobileJWT] = useState(null);
+  const [status, setStatus] = useState("loading"); // loading | success | error
 
+  // Load mobile JWT once
   useEffect(() => {
+    const storedToken = localStorage.getItem("token");
+    setMobileJWT(storedToken !== null ? storedToken : ""); 
+  }, []);
+
+  // Approve QR ONLY after mobileJWT is loaded
+  useEffect(() => {
+    // 1️⃣ Wait until mobileJWT is loaded (null means "not loaded yet")
+    if (mobileJWT === null) return;
+
+    // 2️⃣ Validate QR token
     if (!qrToken) {
       setStatus("error");
-      toast.error("No QR token found in URL");
+      toast.error("Invalid QR code");
       return;
     }
 
+    // 3️⃣ User NOT logged in on mobile
     if (!mobileJWT) {
       setStatus("error");
       toast.error("Please login on mobile first");
@@ -32,71 +40,52 @@ const QRApprove = () => {
       return;
     }
 
-    const approveQR = async () => {
+    // 4️⃣ Approve QR after all checks
+    const approve = async () => {
       try {
-        console.log("Sending approval request...");
         const { data } = await axios.post(
           `${backendUrl}/api/auth/qr/approve`,
           { qrToken },
-          { 
+          {
             headers: {
-  Authorization: `Bearer ${mobileJWT}`,
-  'Content-Type': 'application/json'
-}
+              Authorization: `Bearer ${mobileJWT}`,
+              "Content-Type": "application/json",
+            },
           }
         );
-        
-        console.log("Approval response:", data);
-        
+
         if (data.success) {
           setStatus("success");
-          toast.success("QR approved successfully! Desktop will login.");
-          // Redirect back to home after success
-          setTimeout(() => navigate("/"), 3000);
+          toast.success("QR approved! Desktop will log in.");
+
+          setTimeout(() => navigate("/"), 2500);
         } else {
           setStatus("error");
           toast.error(data.message || "Failed to approve QR");
         }
       } catch (err) {
-        console.error("Approval error:", err);
         setStatus("error");
-        toast.error(err.response?.data?.message || "Error approving QR");
+        toast.error(err.response?.data?.message || "QR approval error");
       }
     };
 
-    approveQR();
-  }, [qrToken, mobileJWT, backendUrl, navigate]);
+    approve();
+  }, [mobileJWT, qrToken, backendUrl, navigate]);
 
   return (
-    <div style={{ 
-      textAlign: 'center', 
-      padding: '40px 20px',
-      maxWidth: '400px',
-      margin: '0 auto'
-    }}>
+    <div style={{ textAlign: "center", padding: "40px 20px" }}>
       <h2>QR Approval</h2>
-      
-      {status === "processing" && (
-        <div>
-          <p>Processing QR approval...</p>
-          <div style={{ margin: '20px 0' }}>
-            <div className="spinner"></div>
-          </div>
-        </div>
+
+      {status === "loading" && (
+        <p>Processing QR approval...</p>
       )}
-      
+
       {status === "success" && (
-        <div style={{ color: 'green' }}>
-          <p>✅ QR approved successfully!</p>
-          <p>Redirecting you back to home...</p>
-        </div>
+        <p style={{ color: "green" }}>✅ QR Approved! Redirecting...</p>
       )}
-      
+
       {status === "error" && (
-        <div style={{ color: 'red' }}>
-          <p>❌ Failed to approve QR</p>
-          <p>Please try again.</p>
-        </div>
+        <p style={{ color: "red" }}>❌ QR Approval Failed</p>
       )}
     </div>
   );
