@@ -4,7 +4,7 @@ import userModel from "../models/userModel.js";
 export const protect = async (req, res, next) => {
   let token;
 
-  // Authorization: Bearer xxx
+  // 1. Check Authorization header (Mobile QR Approval)
   if (
     req.headers.authorization &&
     req.headers.authorization.startsWith("Bearer")
@@ -12,8 +12,17 @@ export const protect = async (req, res, next) => {
     token = req.headers.authorization.split(" ")[1];
   }
 
+  // 2. Check cookie (Normal login + Desktop QR login)
+  if (!token && req.cookies.token) {
+    token = req.cookies.token;
+  }
+
+  // If still no token → unauthorized
   if (!token) {
-    return res.status(401).json({ success: false, message: "Not authorized, no token" });
+    return res.status(401).json({
+      success: false,
+      message: "Not authorized, no token"
+    });
   }
 
   try {
@@ -22,6 +31,10 @@ export const protect = async (req, res, next) => {
     next();
   } catch (err) {
     console.log("JWT ERROR:", err.message);
-    return res.status(401).json({ success: false, message: "Not authorized, token failed" });
+    return res.status(401).json({
+      success: false,
+      message: "Not authorized, token failed"
+    });
   }
 };
+
