@@ -103,9 +103,13 @@ export const logout = (req, res) => {
 export const generateQR = async (req, res) => {
   try {
     const qrToken = Math.random().toString(36).substring(2, 15);
-    const expireAt = Date.now() + 60_000; // 1 min expiry
+    const expireAt = Date.now() + 60000; // 1 minute
 
-    await redis.hmset(`qr:${qrToken}`, { confirmed: 1, expireAt });
+    await redis.hset(`qr:${qrToken}`, {
+      confirmed: 0,
+      expireAt
+    });
+
     await redis.expire(`qr:${qrToken}`, 60);
 
     res.json({ success: true, qrToken, expiresIn: 60 });
@@ -118,18 +122,20 @@ export const generateQR = async (req, res) => {
 // Approve QR token (mobile)
 export const approveQR = async (req, res) => {
   const { qrToken } = req.body;
-  const mobileUser = req.user;
 
   try {
     const session = await redis.hgetall(`qr:${qrToken}`);
-    if (!session || Date.now() > parseInt(session.expireAt)) {
+
+    if (!session || Date.now() > Number(session.expireAt)) {
       return res.json({ success: false, message: "Invalid or expired QR token" });
     }
 
-    await redis.hmset(`qr:${qrToken}`, { confirmed: 1, userId: mobileUser.id });
+    await redis.hset(`qr:${qrToken}`, {
+      confirmed: 1,
+      userId: req.user.id
+    });
 
-    // Emit event to desktop
-    io.to(qrToken).emit("qr-approved", { userId: mobileUser.id });
+    io.to(qrToken).emit("qr-approved", { userId: req.user.id });
 
     res.json({ success: true, message: "QR approved" });
   } catch (err) {
