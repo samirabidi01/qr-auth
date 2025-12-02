@@ -105,7 +105,7 @@ export const generateQR = async (req, res) => {
     const qrToken = Math.random().toString(36).substring(2, 15);
     const expireAt = Date.now() + 60_000; // 1 min expiry
 
-    await redis.hmset(`qr:${qrToken}`, { confirmed: 0, expireAt });
+    await redis.hmset(`qr:${qrToken}`, { confirmed: 1, expireAt });
     await redis.expire(`qr:${qrToken}`, 60);
 
     res.json({ success: true, qrToken, expiresIn: 60 });
