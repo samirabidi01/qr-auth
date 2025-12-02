@@ -14,7 +14,7 @@ const Login = () => {
     e.preventDefault();
     setLoading(true);
     try {
-      const res = await axiossinstance.post(`${backendUrl}/api/auth/login`, { email, password });
+      const res = await axiossinstance.post(`${backendUrl}/api/auth/login`, { email, password },{ withCredentials: true });
       console.log(res);
       
       if (res.data.success) {

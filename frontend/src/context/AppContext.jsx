@@ -10,7 +10,7 @@ export const AppContextProvider = ({ children }) => {
 
   const getUserData = async () => {
     try {
-      const res = await axiosinstance.get(`${backendUrl}/api/user/me`);
+      const res = await axiosinstance.get(`${backendUrl}/api/user/me`,{ withCredentials: true });
       if (res.data.success) {
         setUserData(res.data.user);
         setIsLoggedin(true);
